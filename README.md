@@ -23,7 +23,7 @@ cp .env.example .env
 Required environment variables:
 
 | Variable | Description |
-|----------|-------------|
+| :--- | :--- |
 | `DISCORD_BOT_TOKEN` | Your Discord bot token |
 | `DISCORD_CHANNEL_ID` | Channel ID to monitor for signals |
 | `BLOFIN_API_KEY` | Blofin API key |
@@ -54,7 +54,7 @@ Navigate to `http://localhost:3000` in your browser.
 
 ## Architecture
 
-```
+```text
 src/
 ├── index.js                  # Application entry point
 ├── config/
