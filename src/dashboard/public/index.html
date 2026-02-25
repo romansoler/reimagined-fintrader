@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PerpTrader — Discord Signal to Blofin Perpetual Futures Execution Dashboard">
+  <title>PerpTrader — Signal Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>⚡</text></svg>">
+</head>
+
+<body>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Confirm Modal -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal">
+      <h3>⚡ Confirm Trade</h3>
+      <div class="modal-details" id="modalDetails"></div>
+      <div class="modal-actions">
+        <button class="btn-confirm cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-confirm execute" id="modalExecuteBtn">Execute Trade</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DCA Info Modal -->
+  <div class="modal-overlay" id="dcaModal">
+    <div class="modal">
+      <h3>📊 DCA Levels Detected</h3>
+      <div id="dcaExplanation" class="dca-explain"></div>
+      <div id="dcaLevelsList" class="dca-levels-list"></div>
+      <div class="modal-actions">
+        <button class="btn-confirm cancel" onclick="closeDcaModal()">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo-icon">⚡</div>
+        <div>
+          <h1>PerpTrader</h1>
+          <span class="header-subtitle">Discord → Blofin Signal Execution</span>
+        </div>
+      </div>
+      <div class="status-pills">
+        <div class="status-pill">
+          <span class="status-dot disconnected" id="discordStatus"></span>
+          <span>Discord</span>
+        </div>
+        <div class="status-pill">
+          <span class="status-dot disconnected" id="blofinStatus"></span>
+          <span>Blofin</span>
+        </div>
+        <div class="status-pill" style="color: var(--text-muted);">
+          <span>⏱</span>
+          <span id="uptimeDisplay">0s</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Balance Bar -->
+    <div class="balance-bar">
+      <div class="balance-item">
+        <span class="balance-label">Available Balance</span>
+        <span class="balance-value" id="balanceValue">—</span>
+      </div>
+      <div class="balance-separator"></div>
+      <div class="balance-item">
+        <span class="balance-label">Total Equity</span>
+        <span class="balance-value" id="equityValue">—</span>
+      </div>
+      <div class="balance-separator"></div>
+      <div class="balance-item">
+        <span class="balance-label">Unrealized PnL</span>
+        <span class="balance-value" id="pnlValue">—</span>
+      </div>
+      <div class="balance-separator"></div>
+      <div class="balance-item">
+        <span class="balance-label">Signals Today</span>
+        <span class="balance-value" id="signalCount">0</span>
+      </div>
+    </div>
+
+    <!-- Grid Layout -->
+    <div class="grid-layout">
+
+      <!-- Config Panel -->
+      <div class="config-panel card">
+        <div class="card-header">
+          <h2><span class="icon">⚙️</span> Configuration</h2>
+          <span class="card-badge" id="configStatus">SAVED</span>
+        </div>
+        <div class="card-body">
+
+          <!-- Trader Whitelist -->
+          <div class="config-section">
+            <div class="config-section-title">Trader Whitelist</div>
+            <div class="config-row" style="gap:6px;">
+              <input type="text" class="config-input wide" id="traderInput" placeholder="e.g. Haseeb Trade"
+                style="flex:1;">
+              <button class="btn-add-trader" id="btnAddTrader" onclick="addTrader()">+</button>
+            </div>
+            <div class="trader-list" id="traderList">
+              <span class="empty-hint">No traders — all signals allowed</span>
+            </div>
+          </div>
+
+          <!-- Order Defaults -->
+          <div class="config-section">
+            <div class="config-section-title">Order Defaults</div>
+            <div class="config-row">
+              <label>Amount (USDT)</label>
+              <input type="number" class="config-input" id="cfgOrderAmount" min="1" step="1" value="50">
+            </div>
+            <div class="config-row">
+              <label>Order Type</label>
+              <select class="config-select" id="cfgOrderType">
+                <option value="market">Market</option>
+                <option value="limit">Limit</option>
+              </select>
+            </div>
+            <div class="config-row">
+              <label>Slippage %</label>
+              <input type="number" class="config-input" id="cfgSlippagePercent" min="0.1" max="20" step="0.1"
+                value="1.0" title="If limit price deviates more than this % from market, use market order instead">
+            </div>
+            <div class="config-row">
+              <label>Leverage (saved)</label>
+              <input type="number" class="config-input" id="cfgLeverage" min="1" max="200" step="1" value="20">
+            </div>
+            <div class="config-row">
+              <label>Leverage Source</label>
+              <select class="config-select" id="cfgLeverageSource"
+                title="'Signal' uses the leverage from the Discord signal. 'Saved' always uses your default. 'Max' uses whichever is higher.">
+                <option value="signal">Signal</option>
+                <option value="saved">Saved Default</option>
+                <option value="max">Max of Both</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Margin & Risk -->
+          <div class="config-section">
+            <div class="config-section-title">Margin & Risk</div>
+            <div class="config-row">
+              <label>Margin Mode</label>
+              <select class="config-select" id="cfgMarginMode">
+                <option value="cross">Cross</option>
+                <option value="isolated">Isolated</option>
+              </select>
+            </div>
+            <div class="config-row">
+              <label>Trailing SL Variance %</label>
+              <input type="number" class="config-input" id="cfgTrailingStopVariance" min="0.1" max="50" step="0.1"
+                value="2.0">
+            </div>
+            <div class="config-row">
+              <label>SL Type</label>
+              <select class="config-select" id="cfgTrailingStopType">
+                <option value="tpsl">TP/SL</option>
+                <option value="algo">Algo/Trigger</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- DCA Settings -->
+          <div class="config-section">
+            <div class="config-section-title">DCA (Dollar-Cost Averaging)</div>
+            <div class="config-row">
+              <label>Use DCA Levels</label>
+              <label class="toggle-switch">
+                <input type="checkbox" id="cfgUseDca">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="config-row">
+              <label>DCA Mode</label>
+              <select class="config-select" id="cfgDcaMode"
+                title="'Display' shows DCA levels in the dashboard only. 'Auto' places limit orders at DCA prices automatically.">
+                <option value="display">Display Only</option>
+                <option value="auto">Auto Place Orders</option>
+              </select>
+            </div>
+            <div class="dca-info-box">
+              <span class="info-icon">ℹ️</span>
+              <span>DCA levels are additional entry points that average your position cost if price moves against you.
+                <strong>Auto mode increases total risk.</strong></span>
+            </div>
+          </div>
+
+          <!-- Execution -->
+          <div class="config-section">
+            <div class="config-section-title">Execution</div>
+            <div class="config-row">
+              <label>Auto Execute</label>
+              <label class="toggle-switch">
+                <input type="checkbox" id="cfgAutoExecute" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="config-row">
+              <label>Confirm Before Order</label>
+              <label class="toggle-switch">
+                <input type="checkbox" id="cfgConfirmBeforeOrder">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Discord -->
+          <div class="config-section">
+            <div class="config-section-title">Discord Channel</div>
+            <div class="config-row">
+              <input type="text" class="config-input wide" id="cfgChannelId" placeholder="Channel ID">
+            </div>
+          </div>
+
+          <button class="btn-save" id="btnSave" onclick="saveConfig()">
+            💾 Save Configuration
+          </button>
+          <button class="btn-emergency" id="btnEmergency" onclick="emergencyClose()">
+            🛑 Emergency Close All
+          </button>
+        </div>
+      </div>
+
+      <!-- Signal Feed -->
+      <div class="signal-feed card">
+        <div class="card-header">
+          <h2><span class="icon">📡</span> Signal Feed</h2>
+          <span class="card-badge" id="signalBadge">LIVE</span>
+        </div>
+        <div class="card-body">
+          <div class="signal-list" id="signalList">
+            <div class="empty-state">
+              <span class="icon">📡</span>
+              <p>Waiting for signals...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order History -->
+      <div class="order-history card">
+        <div class="card-header">
+          <h2><span class="icon">📋</span> Order History</h2>
+          <span class="card-badge" id="orderBadge">0</span>
+        </div>
+        <div class="card-body" style="padding: 0;">
+          <div class="order-table-wrapper">
+            <table class="order-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Pair</th>
+                  <th>Side</th>
+                  <th>Type</th>
+                  <th>Price</th>
+                  <th>Size</th>
+                  <th>Lev</th>
+                  <th>Trader</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="orderTableBody">
+                <tr>
+                  <td colspan="9">
+                    <div class="empty-state"><span class="icon">📋</span>
+                      <p>No orders yet</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Event Log -->
+      <div class="event-log card">
+        <div class="card-header">
+          <h2><span class="icon">📝</span> Event Log</h2>
+          <span class="card-badge" id="eventBadge">0</span>
+        </div>
+        <div class="event-log-body" id="eventLogBody">
+          <div class="empty-state">
+            <span class="icon">📝</span>
+            <p>No events recorded</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>
