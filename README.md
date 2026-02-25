@@ -1,6 +1,13 @@
+<<<<<<< HEAD
 # AutoSignalPerpTrader 🤖📉
 
 > **Automated Discord Signal Execution for Blofin Perpetual Futures**
+=======
+# reimagined-fintrader
+ 🤖📉
+
+> **Automated Discord Signal Execution for Blofin (More coming) Perpetual Futures**
+>>>>>>> e43b86f5ccfd2b0aa55e385fdb0dfab4091240ce
 
 AutoSignalPerpTrader is a high-performance, event-driven trading bot that bridges the gap between social trading communities and professional exchange execution. It monitors specific Discord channels for trading signals (Long/Short, Entry, TP, SL) and executes them on the **Blofin** exchange with millisecond precision.
 
